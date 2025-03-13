@@ -9,7 +9,7 @@ type AuthContextType = {
   signOut: () => void;
   loading: boolean;
   verifyCode: (email: string, code: string) => Promise<void>;
-  registerAppointment: (email: string, service: string, date: string, time: string) => Promise<void>;
+  registerAppointment: (email: string, service: string, date: string, time: string, price?: string) => Promise<void>;
   registerForAirPurifier: (firstName: string, lastName: string, email: string, reason: string) => Promise<void>;
   getAllUsers: () => UserRegistration[];
   getAllAppointments: () => Appointment[];
@@ -84,6 +84,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           // Clean up the verification code
           delete codes[email];
           saveToLocalStorage('verificationCodes', codes);
+          
+          // Set the user as logged in
+          const authenticatedUser = users[pendingUserIndex];
+          localStorage.setItem("userEmail", authenticatedUser.email);
+          localStorage.setItem("userFirstName", authenticatedUser.firstName);
+          localStorage.setItem("userMiddleName", authenticatedUser.middleName || '');
+          localStorage.setItem("userLastName", authenticatedUser.lastName);
+          
+          setUser({
+            email: authenticatedUser.email,
+            firstName: authenticatedUser.firstName,
+            middleName: authenticatedUser.middleName || '',
+            lastName: authenticatedUser.lastName,
+            isAuthenticated: true,
+            createdAt: authenticatedUser.createdAt
+          });
           
           resolve();
         } else {
@@ -167,7 +183,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         users.push(newUser);
         saveToLocalStorage('users', users);
         
-        // Simulate sending verification email
+        // Show verification code in console for testing
         console.log(`Verification code for ${email}: ${verificationCode}`);
         
         setLoading(false);
@@ -184,7 +200,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(null);
   };
   
-  const registerAppointment = async (email: string, service: string, date: string, time: string) => {
+  const registerAppointment = async (email: string, service: string, date: string, time: string, price?: string) => {
     return new Promise<void>((resolve) => {
       // Get the current user
       const users = getFromLocalStorage('users') || [];
@@ -205,7 +221,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         email,
         service,
         date,
-        time
+        time,
+        price: price || (service === 'In-Person Consultation' ? 'NPR 1,000' : 'NPR 500')
       };
       
       appointments.push(newAppointment);

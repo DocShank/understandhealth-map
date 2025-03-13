@@ -21,6 +21,19 @@ const AdminPanel = () => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [preRegistrations, setPreRegistrations] = useState<PreRegistration[]>([]);
 
+  // Check if admin data is stored in local storage to persist admin session
+  useEffect(() => {
+    const adminAuth = localStorage.getItem("adminAuthenticated");
+    if (adminAuth === "true") {
+      setIsAuthenticated(true);
+      // Load all data when authenticated
+      setRegisteredUsers(getAllUsers());
+      setAppointments(getAllAppointments());
+      setPreRegistrations(getAllPreRegistrations());
+    }
+  }, [getAllUsers, getAllAppointments, getAllPreRegistrations]);
+
+  // Refresh data whenever isAuthenticated changes
   useEffect(() => {
     if (isAuthenticated) {
       // Load all data when authenticated
@@ -30,13 +43,29 @@ const AdminPanel = () => {
     }
   }, [isAuthenticated, getAllUsers, getAllAppointments, getAllPreRegistrations]);
 
+  // Periodically refresh data for real-time updates (every 5 seconds)
+  useEffect(() => {
+    if (isAuthenticated) {
+      const intervalId = setInterval(() => {
+        setRegisteredUsers(getAllUsers());
+        setAppointments(getAllAppointments());
+        setPreRegistrations(getAllPreRegistrations());
+      }, 5000);
+      
+      return () => clearInterval(intervalId);
+    }
+  }, [isAuthenticated, getAllUsers, getAllAppointments, getAllPreRegistrations]);
+
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
     setTimeout(() => {
+      // Fixed username to match the requested "Shashank" instead of any case variations
       if (username === "Shashank" && password === "7705*Shashank") {
         setIsAuthenticated(true);
+        localStorage.setItem("adminAuthenticated", "true");
+        
         toast({
           title: "Login Successful",
           description: "Welcome to the admin panel, Dr. Shashank.",
@@ -55,6 +84,11 @@ const AdminPanel = () => {
       }
       setIsLoading(false);
     }, 1000);
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    localStorage.removeItem("adminAuthenticated");
   };
 
   const downloadData = (data: any[], type: string) => {
@@ -172,7 +206,7 @@ const AdminPanel = () => {
               <h2 className="text-2xl font-semibold">Admin Dashboard</h2>
               <Button
                 variant="outline"
-                onClick={() => setIsAuthenticated(false)}
+                onClick={handleLogout}
               >
                 Logout
               </Button>
@@ -195,7 +229,7 @@ const AdminPanel = () => {
               
               <TabsContent value="users" className="mt-0">
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-medium">Registered Users</h3>
+                  <h3 className="text-lg font-medium">Registered Users ({registeredUsers.length})</h3>
                   <Button
                     size="sm"
                     variant="outline"
@@ -264,7 +298,7 @@ const AdminPanel = () => {
               
               <TabsContent value="appointments" className="mt-0">
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-medium">Recent Appointments</h3>
+                  <h3 className="text-lg font-medium">Recent Appointments ({appointments.length})</h3>
                   <Button
                     size="sm"
                     variant="outline"
@@ -325,7 +359,7 @@ const AdminPanel = () => {
               
               <TabsContent value="registrations" className="mt-0">
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-medium">Smart Air Purifier Pre-Registrations</h3>
+                  <h3 className="text-lg font-medium">Smart Air Purifier Pre-Registrations ({preRegistrations.length})</h3>
                   <Button
                     size="sm"
                     variant="outline"

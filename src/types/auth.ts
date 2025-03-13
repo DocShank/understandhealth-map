@@ -22,6 +22,7 @@ export interface Appointment {
   service: string;
   date: string;
   time: string;
+  price?: string;
 }
 
 export interface PreRegistration {
