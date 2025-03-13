@@ -1,11 +1,13 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
-import { User, Calendar, PaperclipIcon, Download } from "lucide-react";
+import { User, Calendar, PaperclipIcon, Download, Users, Database } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { User as UserType, Appointment, PreRegistration } from "@/types/auth";
 
 const AdminPanel = () => {
   const [username, setUsername] = useState("");
@@ -13,16 +15,20 @@ const AdminPanel = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const { getAllUsers, getAllAppointments, getAllPreRegistrations } = useAuth();
+  
+  const [registeredUsers, setRegisteredUsers] = useState<UserType[]>([]);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [preRegistrations, setPreRegistrations] = useState<PreRegistration[]>([]);
 
-  const mockAppointments = [
-    { id: 1, name: "John Doe", email: "john@example.com", service: "In-Person Consultation", date: "2023-06-15", time: "9:00 AM" },
-    { id: 2, name: "Jane Smith", email: "jane@example.com", service: "Virtual Consultation", date: "2023-06-16", time: "3:00 PM" },
-  ];
-
-  const mockPreRegistrations = [
-    { id: 1, name: "Michael Johnson", email: "michael@example.com", reason: "I'm interested in air quality improvement" },
-    { id: 2, name: "Sarah Williams", email: "sarah@example.com", reason: "Looking for solutions for my allergies" },
-  ];
+  useEffect(() => {
+    if (isAuthenticated) {
+      // Load all data when authenticated
+      setRegisteredUsers(getAllUsers());
+      setAppointments(getAllAppointments());
+      setPreRegistrations(getAllPreRegistrations());
+    }
+  }, [isAuthenticated, getAllUsers, getAllAppointments, getAllPreRegistrations]);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,6 +41,11 @@ const AdminPanel = () => {
           title: "Login Successful",
           description: "Welcome to the admin panel, Dr. Shashank.",
         });
+        
+        // Load all data
+        setRegisteredUsers(getAllUsers());
+        setAppointments(getAllAppointments());
+        setPreRegistrations(getAllPreRegistrations());
       } else {
         toast({
           title: "Authentication Failed",
@@ -166,24 +177,98 @@ const AdminPanel = () => {
                 Logout
               </Button>
             </div>
-            <Tabs defaultValue="appointments" className="w-full">
+            <Tabs defaultValue="users" className="w-full">
               <TabsList className="mb-8">
+                <TabsTrigger value="users" className="flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  Registered Users
+                </TabsTrigger>
                 <TabsTrigger value="appointments" className="flex items-center gap-2">
                   <Calendar className="h-4 w-4" />
                   Appointments
                 </TabsTrigger>
                 <TabsTrigger value="registrations" className="flex items-center gap-2">
-                  <User className="h-4 w-4" />
+                  <Database className="h-4 w-4" />
                   Pre-Registrations
                 </TabsTrigger>
               </TabsList>
+              
+              <TabsContent value="users" className="mt-0">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-medium">Registered Users</h3>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => downloadData(registeredUsers, "users")}
+                    className="flex items-center gap-1"
+                  >
+                    <Download className="h-4 w-4" />
+                    Export
+                  </Button>
+                </div>
+                <div className="bg-white rounded-lg shadow overflow-hidden">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Name
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Email
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Status
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Registered On
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {registeredUsers.length > 0 ? (
+                        registeredUsers.map((user: any, index) => (
+                          <tr key={index}>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                              {user.firstName} {user.middleName || ''} {user.lastName}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {user.email}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {user.isAuthenticated ? (
+                                <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                  Verified
+                                </span>
+                              ) : (
+                                <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                  Pending
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {user.createdAt ? new Date(user.createdAt).toLocaleString() : 'N/A'}
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={4} className="px-6 py-4 text-center text-sm text-gray-500">
+                            No users registered yet
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </TabsContent>
+              
               <TabsContent value="appointments" className="mt-0">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg font-medium">Recent Appointments</h3>
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => downloadData(mockAppointments, "appointments")}
+                    onClick={() => downloadData(appointments, "appointments")}
                     className="flex items-center gap-1"
                   >
                     <Download className="h-4 w-4" />
@@ -209,33 +294,42 @@ const AdminPanel = () => {
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {mockAppointments.map((appointment) => (
-                        <tr key={appointment.id}>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            {appointment.name}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {appointment.email}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {appointment.service}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {appointment.date} at {appointment.time}
+                      {appointments.length > 0 ? (
+                        appointments.map((appointment) => (
+                          <tr key={appointment.id}>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                              {appointment.name}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {appointment.email}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {appointment.service}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {appointment.date} at {appointment.time}
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={4} className="px-6 py-4 text-center text-sm text-gray-500">
+                            No appointments booked yet
                           </td>
                         </tr>
-                      ))}
+                      )}
                     </tbody>
                   </table>
                 </div>
               </TabsContent>
+              
               <TabsContent value="registrations" className="mt-0">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg font-medium">Smart Air Purifier Pre-Registrations</h3>
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => downloadData(mockPreRegistrations, "pre_registrations")}
+                    onClick={() => downloadData(preRegistrations, "pre_registrations")}
                     className="flex items-center gap-1"
                   >
                     <Download className="h-4 w-4" />
@@ -253,24 +347,32 @@ const AdminPanel = () => {
                           Email
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Reason
+                          Reason for Interest
                         </th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {mockPreRegistrations.map((registration) => (
-                        <tr key={registration.id}>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            {registration.name}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {registration.email}
-                          </td>
-                          <td className="px-6 py-4 text-sm text-gray-500">
-                            {registration.reason}
+                      {preRegistrations.length > 0 ? (
+                        preRegistrations.map((registration) => (
+                          <tr key={registration.id}>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                              {registration.name}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {registration.email}
+                            </td>
+                            <td className="px-6 py-4 text-sm text-gray-500">
+                              {registration.reason}
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={3} className="px-6 py-4 text-center text-sm text-gray-500">
+                            No pre-registrations yet
                           </td>
                         </tr>
-                      ))}
+                      )}
                     </tbody>
                   </table>
                 </div>

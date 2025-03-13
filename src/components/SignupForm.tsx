@@ -17,15 +17,10 @@ const SignupForm = () => {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [verificationStep, setVerificationStep] = useState(false);
-  const [verificationCode, setVerificationCode] = useState("");
   const [enteredCode, setEnteredCode] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { signIn, signUp } = useAuth();
-
-  const generateVerificationCode = () => {
-    return Math.floor(100000 + Math.random() * 900000).toString();
-  };
+  const { signIn, signUp, verifyCode } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,50 +28,47 @@ const SignupForm = () => {
     
     if (isSignUp) {
       if (!verificationStep) {
-        // Generate a 6-digit verification code
-        const code = generateVerificationCode();
-        setVerificationCode(code);
-        
-        // Simulate sending verification email
-        console.log(`Verification email sent to: ${email} with code: ${code}`);
-        
-        toast({
-          title: "Verification Code Sent!",
-          description: `We've sent a 6-digit code to ${email}. Please check your inbox.`,
-        });
-        
-        setVerificationStep(true);
-        setLoading(false);
-      } else {
-        // Verify the code
-        if (enteredCode === verificationCode) {
-          try {
-            // Simulate account creation
-            await signUp(email, password, firstName, middleName, lastName);
-            
-            toast({
-              title: "Welcome!",
-              description: "Account created successfully. You can now sign in.",
-            });
-            
-            // Reset the form and show login
-            setVerificationStep(false);
-            setIsSignUp(false);
-          } catch (error) {
-            toast({
-              title: "Error",
-              description: "Failed to create account. Please try again.",
-              variant: "destructive",
-            });
-          }
-        } else {
+        try {
+          // Attempt to sign up
+          await signUp(email, password, firstName, middleName, lastName);
+          
           toast({
-            title: "Invalid Code",
-            description: "The verification code you entered is incorrect.",
+            title: "Verification Code Sent!",
+            description: `We've sent a 6-digit code to ${email}. Please check the console (for demo purposes).`,
+          });
+          
+          setVerificationStep(true);
+        } catch (error: any) {
+          toast({
+            title: "Error",
+            description: error.message || "Failed to create account. Please try again.",
             variant: "destructive",
           });
+        } finally {
+          setLoading(false);
         }
-        setLoading(false);
+      } else {
+        try {
+          // Verify the code
+          await verifyCode(email, enteredCode);
+          
+          toast({
+            title: "Welcome!",
+            description: "Account created and verified successfully. You can now sign in.",
+          });
+          
+          // Reset the form and show login
+          setVerificationStep(false);
+          setIsSignUp(false);
+        } catch (error: any) {
+          toast({
+            title: "Invalid Code",
+            description: error.message || "The verification code you entered is incorrect.",
+            variant: "destructive",
+          });
+        } finally {
+          setLoading(false);
+        }
       }
     } else {
       try {
@@ -89,12 +81,13 @@ const SignupForm = () => {
         });
         
         navigate("/dashboard");
-      } catch (error) {
+      } catch (error: any) {
         toast({
           title: "Error",
-          description: "Invalid email or password. Please try again.",
+          description: error.message || "Invalid email or password. Please try again.",
           variant: "destructive",
         });
+      } finally {
         setLoading(false);
       }
     }
@@ -235,6 +228,7 @@ const SignupForm = () => {
               <motion.div variants={inputVariants} className="space-y-3">
                 <p className="text-sm text-gray-600 mb-2">
                   Please enter the 6-digit verification code sent to <span className="font-medium">{email}</span>
+                  <br /><span className="text-xs text-gray-500">(For demo purposes, check the console log)</span>
                 </p>
                 <div className="relative">
                   <Input
@@ -331,12 +325,18 @@ const SignupForm = () => {
                 <button
                   type="button"
                   onClick={() => {
-                    const code = generateVerificationCode();
-                    setVerificationCode(code);
-                    console.log(`New verification code sent: ${code}`);
+                    // Simulate resending the code
+                    const newCode = Math.floor(100000 + Math.random() * 900000).toString();
+                    console.log(`New verification code for ${email}: ${newCode}`);
+                    
+                    // Update the verification code in localStorage
+                    const codes = JSON.parse(localStorage.getItem('verificationCodes') || '{}');
+                    codes[email] = newCode;
+                    localStorage.setItem('verificationCodes', JSON.stringify(codes));
+                    
                     toast({
                       title: "New Code Sent!",
-                      description: "A new verification code has been sent to your email.",
+                      description: "A new verification code has been sent. Check the console (for demo purposes).",
                     });
                   }}
                   className="text-primary hover:underline focus:outline-none font-medium"

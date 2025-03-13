@@ -1,7 +1,6 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
@@ -27,7 +26,7 @@ const ServiceCard = ({ title, price, description, icon, details, imageSrc }: Ser
   const [bookingStep, setBookingStep] = useState<'calendar' | 'time' | 'confirm' | 'success'>('calendar');
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, registerAppointment } = useAuth();
 
   const resetBooking = () => {
     setDate(undefined);
@@ -35,29 +34,34 @@ const ServiceCard = ({ title, price, description, icon, details, imageSrc }: Ser
     setBookingStep('calendar');
   };
 
-  const handleBooking = () => {
+  const handleBooking = async () => {
     if (!date || !selectedTime) return;
     
     setIsLoading(true);
     
-    // Simulate sending emails
-    setTimeout(() => {
-      // Send confirmation to user
-      console.log(`Booking confirmation email sent to ${user?.email || 'user'} for ${format(date, "PPP")} at ${selectedTime}`);
-      console.log(`Email content: Dear ${user?.firstName || 'User'}, your appointment for ${title} has been confirmed for ${format(date, "PPP")} at ${selectedTime}. Payment details will be sent separately.`);
-      
-      // Send notification to Dr. Shashank
-      console.log(`Notification email sent to shashankneupane5107@gmail.com`);
-      console.log(`Email content: New ${title} booking from ${user?.firstName || ''} ${user?.lastName || ''} (${user?.email || 'Not logged in'}) for ${format(date, "PPP")} at ${selectedTime}`);
+    try {
+      await registerAppointment(
+        user?.email || 'guest@example.com',
+        title,
+        date ? format(date, "PPP") : '',
+        selectedTime
+      );
       
       toast({
         title: "Appointment Scheduled!",
-        description: `Your appointment is confirmed for ${format(date, "PPP")} at ${selectedTime}. Payment details have been sent to your email.`,
+        description: `Your appointment is confirmed for ${format(date, "PPP")} at ${selectedTime}. Payment details have been recorded.`,
       });
       
-      setIsLoading(false);
       setBookingStep('success');
-    }, 1500);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to book appointment. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const cardVariants = {
@@ -172,8 +176,8 @@ const ServiceCard = ({ title, price, description, icon, details, imageSrc }: Ser
               exit={{ opacity: 0, y: -20, transition: { duration: 0.2 } }}
               className="p-6"
             >
-              <motion.h3 variants={itemVariants} className="text-xl font-semibold mb-2">{title}</motion.h3>
-              <motion.p variants={itemVariants} className="mb-6 text-gray-600">{details}</motion.p>
+              <DialogTitle className="text-xl font-semibold mb-2">{title}</DialogTitle>
+              <DialogDescription className="mb-6 text-gray-600">{details}</DialogDescription>
               
               <motion.div variants={itemVariants} className="bg-gray-50 rounded-xl p-5 shadow-sm">
                 <div className="flex items-center mb-4">
@@ -226,10 +230,10 @@ const ServiceCard = ({ title, price, description, icon, details, imageSrc }: Ser
                 </button>
                 
                 <div>
-                  <h3 className="text-xl font-semibold">{title}</h3>
-                  <p className="text-sm text-gray-500">
+                  <DialogTitle className="text-xl font-semibold">{title}</DialogTitle>
+                  <DialogDescription className="text-sm text-gray-500">
                     {date ? format(date, "MMMM d, yyyy") : "Select a date"}
-                  </p>
+                  </DialogDescription>
                 </div>
               </motion.div>
               
@@ -290,7 +294,7 @@ const ServiceCard = ({ title, price, description, icon, details, imageSrc }: Ser
                 </button>
                 
                 <div>
-                  <h3 className="text-xl font-semibold">{title}</h3>
+                  <DialogTitle className="text-xl font-semibold">{title}</DialogTitle>
                 </div>
               </motion.div>
               
@@ -342,6 +346,7 @@ const ServiceCard = ({ title, price, description, icon, details, imageSrc }: Ser
               transition={{ type: "spring", stiffness: 300, damping: 25 }}
               className="p-8 flex flex-col items-center justify-center text-center"
             >
+              <DialogTitle className="sr-only">Appointment Confirmed</DialogTitle>
               <motion.div 
                 initial={{ scale: 0, rotate: -180 }}
                 animate={{ scale: 1, rotate: 0 }}
@@ -367,7 +372,11 @@ const ServiceCard = ({ title, price, description, icon, details, imageSrc }: Ser
                 <ul className="text-sm text-gray-600 space-y-2">
                   <li className="flex items-start">
                     <span className="text-blue-500 mr-2">•</span>
-                    Payment details have been sent to your email
+                    Payment details have been stored in our system
+                  </li>
+                  <li className="flex items-start">
+                    <span className="text-blue-500 mr-2">•</span>
+                    The information is available in our admin panel
                   </li>
                   <li className="flex items-start">
                     <span className="text-blue-500 mr-2">•</span>
@@ -390,5 +399,28 @@ const ServiceCard = ({ title, price, description, icon, details, imageSrc }: Ser
     </Dialog>
   );
 };
+
+const ButtonWithAnimation = ({ onClick, children, className, disabled = false, ...props }: any) => (
+  <motion.div
+    whileHover={{ scale: 1.02 }}
+    whileTap={{ scale: 0.98 }}
+    transition={{ type: "spring", stiffness: 400, damping: 17 }}
+  >
+    <Button 
+      onClick={onClick} 
+      className={cn("relative overflow-hidden", className)}
+      disabled={disabled}
+      {...props}
+    >
+      <motion.span 
+        className="absolute inset-0 bg-white/20 rounded-md"
+        initial={{ x: "-100%", opacity: 0 }}
+        animate={{ x: "100%", opacity: 0.3 }}
+        transition={{ repeat: Infinity, repeatDelay: 2, duration: 1.5 }}
+      />
+      {children}
+    </Button>
+  </motion.div>
+);
 
 export default ServiceCard;

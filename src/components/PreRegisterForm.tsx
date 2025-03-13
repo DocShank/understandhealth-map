@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 interface PreRegisterFormProps {
   productName: string;
@@ -20,29 +20,31 @@ const PreRegisterForm = ({ productName, price }: PreRegisterFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const { toast } = useToast();
+  const { registerForAirPurifier } = useAuth();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     
-    // Simulate API call to store data
-    setTimeout(() => {
-      // Log the pre-registration data (would be sent to backend in real app)
-      console.log(`Pre-registration for ${productName} from ${firstName} ${lastName} (${email})`);
-      console.log(`Reason for interest: ${reason}`);
-      
-      // Email notification to Dr. Shashank
-      console.log(`Email sent to shashankneupane5107@gmail.com`);
-      console.log(`Email content: New pre-registration for ${productName}: ${firstName} ${lastName} (${email}). Reason: ${reason}`);
+    try {
+      // Register for air purifier
+      await registerForAirPurifier(firstName, lastName, email, reason);
       
       toast({
         title: "Pre-registration Successful!",
         description: `Thank you for your interest in the ${productName}. We'll notify you when it launches.`,
       });
       
-      setIsSubmitting(false);
       setIsSuccess(true);
-    }, 1500);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to submit registration. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const formVariants = {

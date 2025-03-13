@@ -6,6 +6,13 @@ interface UserInfoProps {
 }
 
 const UserInfo = ({ user }: UserInfoProps) => {
+  const getFullName = () => {
+    if (user.middleName) {
+      return `${user.firstName} ${user.middleName} ${user.lastName}`;
+    }
+    return `${user.firstName} ${user.lastName}`;
+  };
+  
   return (
     <div className="fixed top-16 right-6 z-50 p-4 bg-white/80 backdrop-blur-sm rounded-lg shadow-sm">
       <div className="flex items-center gap-2">
@@ -13,7 +20,7 @@ const UserInfo = ({ user }: UserInfoProps) => {
           {user.firstName.charAt(0)}
         </div>
         <div className="flex flex-col">
-          <span className="text-sm font-medium">{user.firstName} {user.lastName}</span>
+          <span className="text-sm font-medium">{getFullName()}</span>
           <span className="text-xs text-gray-500">{user.email}</span>
         </div>
       </div>

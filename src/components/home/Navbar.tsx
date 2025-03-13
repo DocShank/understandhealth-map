@@ -21,7 +21,7 @@ const Navbar = ({ navOpacity, user }: NavbarProps) => {
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5 }}
         >
-          Empower Health
+          <Link to="/">Empower Health</Link>
         </motion.div>
         <motion.div 
           className="flex space-x-6"
@@ -32,9 +32,7 @@ const Navbar = ({ navOpacity, user }: NavbarProps) => {
           <a href="#services" className="text-gray-700 hover:text-primary transition-colors">Services</a>
           <a href="#innovations" className="text-gray-700 hover:text-primary transition-colors">Innovations</a>
           <a href="#contact" className="text-gray-700 hover:text-primary transition-colors">Contact</a>
-          {user?.isAuthenticated ? (
-            <Link to="/admin" className="text-primary hover:text-primary/80 transition-colors">Admin</Link>
-          ) : null}
+          <Link to="/admin" className="text-primary hover:text-primary/80 transition-colors">Admin</Link>
         </motion.div>
       </div>
     </motion.div>
